@@ -8,6 +8,8 @@
 #include "OneWire.h"
 #include "MusicPlayer.h"
 #include "Clock.h"
+#include "Button.h"
+#include "Menu.h"
 
 #define PIN_SOUND	9
 #define PIN_OE		10
@@ -84,9 +86,9 @@ byte digits[17] = {
 	B11010100,	// 4
 	B11100110,	// 5
 	B11100111,	// 6
-	B00110100,
-	B11110111,
-	B11110110,
+	B00110100,	// 7
+	B11110111,	// 8
+	B11110110,	// 9
 	B11110101,
 	B11000111,
 	B01100011,
@@ -130,57 +132,6 @@ byte letters[] = {
 	B10000000, B11101101, // 'э'
 	B01011101, B10100101, // 'ю'
 	B10011010, B00101101, // 'я'
-};
-
-class Button {
-	byte pin;
-	word pause;
-	unsigned long time;
-	unsigned long start;
-	boolean state;
-	boolean is_down;
-	boolean is_up;
-public:
-
-	Button(byte pin) {
-		this->pin = pin;
-		pinMode(pin,INPUT);
-		digitalWrite(pin,HIGH);
-		time = millis();
-		start = millis();
-		state = false;
-		is_down = false;
-		is_up = false;
-		pause = 100;
-	}
-
-	boolean pressed() {
-		return state;
-	}
-
-	boolean down() {
-		return is_down;
-	}
-
-	void update() {
-		boolean old = state;
-		if (millis() - time > 20) {
-			state = digitalRead(pin) == LOW;
-			time = millis();
-		}
-		is_down = state == true && old == false;
-		is_up = state == false && old == true;
-		if (is_down) {
-			start = time;
-			pause = 1000;
-		} else
-			if (state && millis() - start > pause) {
-				is_down = true;
-				start += pause;
-				pause = 250;
-			}
-	}
-
 };
 
 Button mode_btn(2);
@@ -244,7 +195,8 @@ void setup() {
 	}
 	delay(500);
 	//music_player.play(melody, noteDurations, 27);
-        if(0) {
+        */
+        if(1) {
             #define TIME(a) (__TIME__[a] - 48)
             byte h = TIME(0) * 10 + TIME(1);
             byte m = TIME(3) * 10 + TIME(4);
@@ -254,7 +206,7 @@ void setup() {
             clock.setMinutes(m);
             clock.setSeconds(s + 15);
         }
-        */
+     
 }
 
 void displayUpdate()
@@ -473,6 +425,16 @@ long smooth_light = 0;
 long clock_per_sec = 0;
 long clock_per_sec_accum = 0;
 long clock_start = millis();
+
+long value_1 = 10;
+MenuItem menu_items[2] = {
+    //MenuItem(MESSAGE_NULL, MENU_ITEM_EDITABLE, 0, 10, 1, &value_0),
+    MenuItem(MESSAGE_CHASI, MENU_ITEM_EDITABLE, 10, 20, 2, &value_1),
+    //MenuItem(MESSAGE_BRIGHT, MENU_ITEM_EDITABLE, 0, 15, 1, &brightness),
+    MenuItem(MESSAGE_CORRECT, MENU_ITEM_EDITABLE, -9999, 9999, 1, clock.getCorrectionPointer()),
+};
+
+Menu menu(menu_items, 2);
 
 void loop() {
         long now_millis = millis();

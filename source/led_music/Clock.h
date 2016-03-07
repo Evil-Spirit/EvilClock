@@ -1,4 +1,4 @@
-#include <DS1307RTC.h>
+  
 
 class Clock {
 	
@@ -9,7 +9,7 @@ class Clock {
 	byte hour_sound;
         byte use_rtc;
 	unsigned long start;
-        unsigned long correction;
+        long correction;
         //RTC_DS1307 *rtc;
 	
 	void updateInternal() {
@@ -110,7 +110,7 @@ public:
 		return seconds;
 	}
 	
-	void setSeconds(byte sec) {
+	void setSeconds(int sec) {
 		seconds = (sec + 60) % 60;
                 setTime();
 	}
@@ -119,7 +119,7 @@ public:
 		return minutes;
 	}
 	
-	void setMinutes(byte min) {
+	void setMinutes(int min) {
 		minutes = (min + 60) % 60;
                 setTime();
 	}
@@ -128,7 +128,7 @@ public:
 		return hours;
 	}
 	
-	void setHours(byte hour) {
+	void setHours(int hour) {
 		hours = (hour + 24) % 24;
                 setTime();
 	}
@@ -142,5 +142,20 @@ public:
 	byte isTire() const {
 		return is_tire;
 	}
+
+        void restart() {
+            start = micros();
+        }
+        
+        long getCorrection() {
+            return correction;
+        }
 	
+        void setCorrection(long correction) {
+           this->correction = correction;
+        }
+        
+        long *getCorrectionPointer() {
+            return &correction;
+        }
 };
