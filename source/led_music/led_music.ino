@@ -1,6 +1,6 @@
 #include <Time.h>
 #include <Wire.h>
-#include <DS1307RTC.h>
+#include <avr/eeprom.h>
 
 #define DEBUG
 
@@ -54,6 +54,7 @@ char noteDurations[] =	{ 2,  4,  4,  2,  4,   4,  2,	4,	4,	 4,	 4,	 4,	  4,  2, 
 short beep[] = {1000};
 char beep_duration[] = {4};
 int temp = 200;
+unsigned int storedCorrection;
 
 byte temp_digits[17] = {
        //01234567	
@@ -190,7 +191,7 @@ Button zero_btn(5);
 Button plus_btn(4);
 Button minus_btn(3);
 MusicPlayer music_player(PIN_SOUND);
-Clock clock(1);
+Clock clocks;
 
 float temperature = 0.0f;
 
@@ -205,18 +206,20 @@ void setup() {
         //SPI.setBitOrder(MSBFIRST);
         //SPI.setClockDivider(SPI_CLOCK_DIV2);
         //SPI.setDataMode(SPI_MODE0);
-        //SPI.begin();  
+        //SPI.begin(); 
+    clocks.setCorrection(eeprom_read_dword(0));
+    storedCorrection = clocks.getCorrection();
 	Serial.begin(9600);
 
 	pinMode(PIN_SDI, OUTPUT);
 	pinMode(PIN_CLK, OUTPUT);
 	pinMode(PIN_LE, OUTPUT);
 	pinMode(PIN_OE, OUTPUT);
-        pinMode(PIN_TEMP, INPUT);
+    pinMode(PIN_TEMP, INPUT);
 	digitalWrite(PIN_OE, LOW);
 	
 	for (int i=0; i<6; i++) {
-            temp_display[i] = temp_digits[i + 5];
+            temp_display[i] = 0xFF;
             main_display[i] = 0;            
         }
 	
@@ -224,11 +227,12 @@ void setup() {
 		text_display[i] = 0x0;
 	}
 	
-	main_display[0] = B11010100;
-	main_display[1] = digits[0xA];
-	main_display[2] = digits[0xC];
-	main_display[3] = digits[0xB];
-	main_display[4] = B01000001;
+    main_display[0] = B11010100;
+    main_display[1] = digits[0xA];
+    main_display[2] = digits[0xC];
+    main_display[3] = digits[0xB];
+    main_display[4] = B01000001;
+
 	displayUpdate();
 	delay(1000);
 	/*
@@ -243,7 +247,9 @@ void setup() {
 		delay(2);
 	}
 	delay(500);
-	//music_player.play(melody, noteDurations, 27);
+    */
+	music_player.play(melody, noteDurations, 27);
+   /*
         if(0) {
             #define TIME(a) (__TIME__[a] - 48)
             byte h = TIME(0) * 10 + TIME(1);
@@ -254,7 +260,7 @@ void setup() {
             clock.setMinutes(m);
             clock.setSeconds(s + 15);
         }
-        */
+    */
 }
 
 void displayUpdate()
@@ -262,7 +268,8 @@ void displayUpdate()
 	//for(int i = 0; i<20; i++) {
 	//	shiftOut(PIN_SDI, PIN_CLK, MSBFIRST, text_display[i]);
 	//}
-
+        // remap non-working segment
+        main_display[5] = (main_display[1] & B00000010) ? 0xFF : 0x00;
         
         // temp display
         byte need_update = 0;
@@ -483,9 +490,9 @@ void loop() {
             clock_per_sec_accum = 0;
         }
         
-	clock.update();
+	clocks.update();
 	// play sound every hour
-	if(clock.isHourSound()) {
+	if(clocks.isHourSound()) {
 		music_player.play(beep, beep_duration, 1);
 	}
 	music_player.update();
@@ -513,25 +520,31 @@ void loop() {
 	min_btn.update();
 	hour_btn.update();
 	zero_btn.update();
-	//plus_btn.update();
+	plus_btn.update();
 	//minus_btn.update();
         mode_btn.update();
 	
 	// min button
 	if (min_btn.down()) {
-		clock.setMinutes(clock.getMinutes() + 1);
+        switch(mode) {
+		    case 0: clocks.setMinutes(clocks.getMinutes() + 1); break;
+            case 2: clocks.setCorrection(clocks.getCorrection() + 1); break;
+        }
 		//start = millis();
 	}
 	
 	// hour button
 	if (hour_btn.down()) {
-		clock.setHours(clock.getHours() + 1);
+        switch(mode) {
+            case 0: clocks.setHours(clocks.getHours() + 1); break;
+            case 2: clocks.setCorrection(clocks.getCorrection() - 1); break;
+        }
 		//start = millis();
 	}
 	
 	// zero clock button
 	if (zero_btn.pressed()) {
-		clock.setSeconds(0);
+		clocks.setSeconds(0);
 		//start = millis();
 	}
 	
@@ -545,6 +558,10 @@ void loop() {
     
         if(mode_btn.down()) {
             mode = (mode + 1) % 3;
+            if(mode == 0 && storedCorrection != clocks.getCorrection()) {
+                   storedCorrection = clocks.getCorrection();
+                   eeprom_write_dword(0, storedCorrection);
+            }
         }
 	
 	//byte is_temp = ((clock.getSeconds() / 3) % 2) == 1 && hour_btn.pressed() == false && min_btn.pressed() == false;
@@ -556,13 +573,13 @@ void loop() {
                 //displayInt(raw_temperature);
 	//} else {
                 if(mode == 0) {
-		    displayTime(clock);
+		    displayTime(clocks);
                 } else 
                 if(mode == 1) {
-                    displayTimeMinSec(clock);
+                    displayTimeMinSec(clocks);
                 } else 
                 if(mode == 2) {
-                    displayInt(clock_per_sec);
+                    displayInt(clocks.getCorrection());
                 }
 	//}
 	
@@ -570,5 +587,3 @@ void loop() {
         delay(10);
 	
 }
-
-

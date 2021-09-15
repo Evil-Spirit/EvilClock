@@ -1,4 +1,3 @@
-#include <DS1307RTC.h>
 
 class Clock {
 	
@@ -44,7 +43,7 @@ class Clock {
 
 	void updateRTC() {
             //if(!use_rtc) return;
-		
+		        /*
             tmElements_t tm;
               if (RTC.read(tm)) {
                   if(tm.Second != seconds) {
@@ -66,6 +65,7 @@ class Clock {
                   Serial.println();
                 }
               }
+              */
 	}
 	
 	void initRTC() {
@@ -74,11 +74,11 @@ class Clock {
 
         void setTime() {
             //if(use_rtc) {
-                tmElements_t tm;
-                tm.Second = seconds;
-                tm.Minute = minutes;
-                tm.Hour = hours;
-                RTC.write(tm);
+                //tmElements_t tm;
+                //tm.Second = seconds;
+                //tm.Minute = minutes;
+                //tm.Hour = hours;
+                //RTC.write(tm);
             //} else {
                 start = micros();
             //}
@@ -142,5 +142,13 @@ public:
 	byte isTire() const {
 		return is_tire;
 	}
+
+   unsigned long getCorrection() {
+        return correction;
+   }
+
+   void setCorrection(unsigned long value) {
+        correction = value;
+   }
 	
 };
